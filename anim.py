@@ -4,6 +4,7 @@ import argparse
 import csv
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+import matplotlib.ticker as ticker
 
 plt.style.use('seaborn-pastel')
 
@@ -11,14 +12,16 @@ start_year = 1960
 stop_year = 2018
 
 
-# return {country: {year: population}}
-def parse_file(filename: str) -> dict:
+# return {country: {year: population}} + {country: {short name}}
+def parse_file(filename: str) -> (dict, dict):
     countries = {}
+    shorts = {}
     with open(filename) as csvfile:
         spamreader = csv.reader(csvfile, delimiter=';')
         for row in spamreader:
-            countries[row[0]] = {start_year + i - 1: int(row[i]) for i in range(1, len(row)) if row[i]}
-    return countries
+            countries[row[0]] = {start_year + i - 2: int(row[i]) for i in range(2, len(row)) if row[i]}
+            shorts[row[0]] = row[1]
+    return countries, shorts
 
 
 def pick_5_closest(country: str, data: dict, year: int):
@@ -55,7 +58,7 @@ def main():
     parser.add_argument('-t', '--title', type=str, help='title')
     args = parser.parse_args()
 
-    data = parse_file(args.database)
+    data, shorts = parse_file(args.database)
     not_countries = [
         'World',
         'IDA & IBRD total',
@@ -123,30 +126,44 @@ def main():
     plt.rc('font', **font)
     fig, ax = plt.subplots(figsize=(15, 8))
 
-    time_text = ax.text(0.75, 0.82, '', transform=ax.transAxes)
-
     countries_names = [convert_dict.get(country_name, country_name) for country_name in closest_5_stop]
+    countries_shorts = [shorts[country_name] for country_name in closest_5_stop]
+
+    def billions(x, pos):
+        return '%1.1fB' % (x * 1e-9)
+
+    def millions(x, pos):
+        return '%1.1fM' % (x * 1e-6)
+
+    max_x = 1.1 * data[closest_5_stop[0]][stop_year]
+
+    formatter = ticker.FuncFormatter(millions if max_x < 300000000 else billions)
 
     def init():
+        return ax
+
+    def animate(i):
+        ax.clear()
         plt.xlabel('Population')
         plt.title(
             f'Population in similar to {args.country} in {args.year} countries ({start_year} - {stop_year})' if not args.title else args.title,
             pad=20)
-
-        ax.set_xlim(0, data[closest_5_stop[0]][stop_year])
+        ax.set_xlim(0, 1.1 * data[closest_5_stop[0]][stop_year])
+        ax.xaxis.set_major_formatter(formatter)
         ax.tick_params(axis='x', which='minor', direction='out', bottom=True, length=5)
-        time_text.set_text('')
-        return time_text, ax
-
-    def animate(i):
-        time_text.set_text(f'{(start_year + i) % (stop_year + 1)}')
+        ax.text(0.75, 0.82, f'{(start_year + i) % (stop_year + 1)}', transform=ax.transAxes, size=44)
         pop = [data[cntry][start_year + i] for cntry in closest_5_stop]
         ax.barh(countries_names, pop, color='royalblue')
-        return time_text, ax
+        for j, country_name in enumerate(closest_5_stop):
+            value = pop[j]
+            short = countries_shorts[j]
+            ax.text(value, j, short)
+        return ax
 
     anim = FuncAnimation(fig, animate, init_func=init,
                          frames=stop_year - start_year + 1, interval=200, blit=False)
-    anim.save(f'{args.country}_{args.year}_closest.gif', writer='imagemagick')
+    # anim.save(f'{args.country}_{args.year}_closest.gif', writer='imagemagick')
+    plt.show()
 
 
 if __name__ == '__main__':
