@@ -54,8 +54,9 @@ def pick_5_closest(country: str, data: dict, year: int):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('database', type=str)
-    parser.add_argument('country', type=str, help='selected country')
-    parser.add_argument('year', type=int, help='selected year')
+    parser.add_argument('start_year', type=int, help='event start year')
+    parser.add_argument('stop_year', type=int, help='event stop year')
+    parser.add_argument('countries', type=str, nargs='+', help='selected countries')
     parser.add_argument('-t', '--title', type=str, help='title')
     parser.add_argument('-m', '--mode', type=str, help='mode: barh, scatter, line, pie, gantt', default='barh')
     parser.add_argument('-c', '--color', type=str, help='color: color, bw', default='color')
@@ -122,20 +123,20 @@ def main():
         if ncount in data:
             del data[ncount]
 
-    closest_5_start = pick_5_closest(args.country, data, args.year)
-    countries_5_closest_data = {country: data[country] for country in closest_5_start}
-    closest_5_stop = pick_5_closest(args.country, countries_5_closest_data, stop_year)
+    countries = {country: data[country] for country in args.countries}
+    countries = {k: v for k, v in sorted(countries.items(), key=lambda item: item[1][args.start_year], reverse=True)}
+    countries = list(countries.keys())
 
     font = {'size': 22}
 
     convert_dict = {'United States': 'USA', 'Egypt, Arab Rep.': 'Egypt', 'Venezuela, RB': 'Venezuela',
-                    'Russian Federation': 'Russia'}
+                    'Russian Federation': 'Russia', 'Iran, Islamic Rep.': 'Iran', 'Saudi Arabia': 'S. Arabia'}
 
     plt.rc('font', **font)
     fig, ax = plt.subplots(figsize=(15, 8))
 
-    countries_names = [convert_dict.get(country_name, country_name) for country_name in closest_5_stop]
-    countries_shorts = [shorts[country_name] for country_name in closest_5_stop]
+    countries_names = [convert_dict.get(country_name, country_name) for country_name in countries]
+    countries_shorts = [shorts[country_name] for country_name in countries]
 
     def billions(x, pos):
         return '%1.1fB' % (x * 1e-9)
@@ -143,7 +144,7 @@ def main():
     def millions(x, pos):
         return '%1.1fM' % (x * 1e-6)
 
-    max_x = 1.1 * data[closest_5_stop[0]][stop_year]
+    max_x = 1.1 * data[countries[0]][stop_year]
 
     formatter = ticker.FuncFormatter(millions if max_x < 300000000 else billions)
 
@@ -152,15 +153,13 @@ def main():
 
     def animate(i):
         ax.clear()
-        plt.title(
-            f'Population in similar to {args.country} in {args.year} countries ({start_year} - {stop_year})' if not args.title else args.title,
-            pad=20)
-        pop = [data[cntry][start_year + i] for cntry in closest_5_stop]
+        plt.title(args.title, pad=20)
+        pop = [data[cntry][start_year + i] for cntry in countries]
         if args.mode == 'barh':
             plt.xlabel('Population')
-            ax.set_xlim(0, 1.1 * data[closest_5_stop[0]][stop_year])
+            ax.set_xlim(0, 1.1 * data[countries[0]][stop_year])
             ax.xaxis.set_major_formatter(formatter)
-            ax.tick_params(axis='x', which='minor', direction='out', bottom=True, length=5)
+            ax.tick_params(axis='x', which='minor', direction='out', bottom=True, length=len(countries))
             ax.text(0.75, 0.82, f'{(start_year + i) % (stop_year + 1)}', transform=ax.transAxes, size=44)
             if args.color == 'color':
                 ax.barh(countries_names, pop, color='royalblue')
@@ -168,8 +167,8 @@ def main():
                 ax.barh(countries_names, pop, color='white', edgecolor='black', hatch='*')
             else:
                 raise Exception('Wrong color')
-            for j, country_name in enumerate(closest_5_stop):
-                value = pop[j] + 0.01 * 1.1 * data[closest_5_stop[0]][stop_year]
+            for j, country_name in enumerate(countries):
+                value = pop[j] + 0.01 * 1.1 * data[countries[0]][stop_year]
                 short = countries_shorts[j]
                 ax.text(value, j, short)
         elif args.mode == 'pie':
@@ -177,14 +176,14 @@ def main():
             ax.pie(pop, labels=countries_names, autopct='%1.1f%%')
         elif args.mode == 'scatter':
             plt.ylabel('Population')
-            dens = [density_data[cntry][start_year + i] * 20 for cntry in closest_5_stop]
-            ax.set_ylim(0, 1.1 * data[closest_5_stop[0]][stop_year])
+            dens = [density_data[cntry][start_year + i] * 20 for cntry in countries]
+            ax.set_ylim(0, 1.1 * data[countries[0]][stop_year])
             ax.set_xlim(start_year, stop_year + 2)
             ax.yaxis.set_major_formatter(formatter)
             ax.set_xticks([year for year in range(start_year, stop_year + 2)], minor=True)
             ax.text(0.1, 0.82, f'{(start_year + i) % (stop_year + 1)}', transform=ax.transAxes, size=44)
-            ax.scatter([start_year + i for _ in range(5)], pop, s=dens, alpha=0.3, c=['red', 'orange', 'purple', 'blue', 'green'])
-            for j, country_name in enumerate(closest_5_stop):
+            ax.scatter([start_year + i for _ in range(len(countries))], pop, s=dens, alpha=0.3, c=['red', 'orange', 'purple', 'blue', 'green'])
+            for j, country_name in enumerate(countries):
                 value = pop[j]
                 short = countries_shorts[j]
                 dx, dy = np.sqrt(dens[j] * 10) / fig.dpi / 2 + 10 / fig.dpi, 0.
@@ -192,26 +191,26 @@ def main():
                 ax.text(start_year + i, value, short, va='center', ha='left', transform=ax.transData + offset)
         elif args.mode == 'line':
             plt.ylabel('Population')
-            ax.set_ylim(0, 1.1 * data[closest_5_stop[0]][stop_year])
+            ax.set_ylim(0, 1.1 * data[countries[0]][stop_year])
             ax.set_xlim(start_year, stop_year + 2)
             ax.yaxis.set_major_formatter(formatter)
             ax.set_xticks([year for year in range(start_year, stop_year + 2)], minor=True)
             ax.text(0.1, 0.82, f'{(start_year + i) % (stop_year + 1)}', transform=ax.transAxes, size=44)
 
             # first must be present to connect lines
-            prev = cpop = [data[cntry][start_year] for cntry in closest_5_stop]
+            prev = cpop = [data[cntry][start_year] for cntry in countries]
             if i == 0:  # only when first frame
-                ax.scatter([start_year for _ in range(5)], cpop, c=['red', 'orange', 'purple', 'blue', 'green'])
+                ax.scatter([start_year for _ in range(len(countries))], cpop, c=['red', 'orange', 'purple', 'blue', 'green'])
 
             for j in range(start_year + 1, start_year + i):
                 colors = ['red', 'orange', 'purple', 'blue', 'green']
-                cpop = [data[cntry][j] for cntry in closest_5_stop]
+                cpop = [data[cntry][j] for cntry in countries]
                 if j == start_year + i - 1:
-                    ax.scatter([j for _ in range(5)], cpop, c=colors)
-                for k in range(5):
+                    ax.scatter([j for _ in range(len(countries))], cpop, c=colors)
+                for k in range(len(countries)):
                     ax.plot([j - 1, j], [prev[k], cpop[k]], colors[k])
                 prev = cpop
-            for j, country_name in enumerate(closest_5_stop):
+            for j, country_name in enumerate(countries):
                 value = pop[j]
                 short = countries_shorts[j]
                 dx, dy = 1 / fig.dpi / 2 + 10 / fig.dpi, 0.
@@ -220,13 +219,19 @@ def main():
 
         else:
             raise Exception('Wrong mode')
+        current_year = (start_year + i) % (stop_year + 1)
+        if args.stop_year >= current_year >= args.start_year:
+            ax.text(0.32, 0.82, f'No data for Kuwait', transform=ax.transAxes, size=30)
+            ax.text(0.72, 0.62, f'Gulf War', transform=ax.transAxes, size=30)
+            ax.text(0.70, 0.52, f'(1990 - 1991)', transform=ax.transAxes, size=30)
+            plt.pause(1)
         return ax
 
     anim = FuncAnimation(fig, animate, init_func=init,
                          frames=stop_year - start_year + 1, interval=200, blit=False)
 
     if args.save:
-        anim.save(f'{args.output}{args.country}_{args.year}_closest_{args.mode}_{args.color}.gif', writer='imagemagick')
+        anim.save(f'{args.output}event_{args.mode}_{args.color}.gif', writer='imagemagick')
     else:
         plt.show()
 
