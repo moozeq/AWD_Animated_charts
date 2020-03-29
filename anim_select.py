@@ -51,6 +51,11 @@ def pick_5_closest(country: str, data: dict, year: int):
     return list(closest_5_sorted.keys())
 
 
+ry = 0
+pause_dur = 10
+pause_dur2 = 10
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('database', type=str)
@@ -152,9 +157,22 @@ def main():
         return ax
 
     def animate(i):
+        global ry, pause_dur, pause_dur2
+        current_year = (start_year + ry) % (stop_year + 1)
+        ry += 1
+        if current_year == args.start_year:
+            if pause_dur:
+                pause_dur -= 1
+                ry -= 1
+        if current_year == args.stop_year:
+            if pause_dur2:
+                pause_dur2 -= 1
+                ry -= 1
+
+        i = ry
         ax.clear()
         plt.title(args.title, pad=20)
-        pop = [data[cntry][start_year + i] for cntry in countries]
+        pop = [data[cntry][current_year] for cntry in countries]
         if args.mode == 'barh':
             plt.xlabel('Population')
             ax.set_xlim(0, 1.1 * data[countries[0]][stop_year])
@@ -219,16 +237,15 @@ def main():
 
         else:
             raise Exception('Wrong mode')
-        current_year = (start_year + i) % (stop_year + 1)
         if args.stop_year >= current_year >= args.start_year:
             ax.text(0.32, 0.82, f'No data for Kuwait', transform=ax.transAxes, size=30)
             ax.text(0.72, 0.62, f'Gulf War', transform=ax.transAxes, size=30)
             ax.text(0.70, 0.52, f'(1990 - 1991)', transform=ax.transAxes, size=30)
-            plt.pause(1)
         return ax
 
+    global pause_dur2, pause_dur
     anim = FuncAnimation(fig, animate, init_func=init,
-                         frames=stop_year - start_year + 1, interval=200, blit=False)
+                         frames=stop_year - start_year + 1 + pause_dur + pause_dur2, interval=200, blit=False)
 
     if args.save:
         anim.save(f'{args.output}event_{args.mode}_{args.color}.gif', writer='imagemagick')
