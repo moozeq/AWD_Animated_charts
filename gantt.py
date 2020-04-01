@@ -18,22 +18,26 @@ class GTask(object):
 
 
 def main():
-    years = mdates.YearLocator()  # every year
-    months = mdates.MonthLocator()  # every month
-    months_fmt = mdates.DateFormatter('%m')
+    from matplotlib.dates import WE
+    years = mdates.YearLocator()
+    months = mdates.MonthLocator()
+    days = mdates.DayLocator()
+    weekdays = mdates.WeekdayLocator(byweekday=WE)
     years_fmt = mdates.DateFormatter('%Y')
+    months_fmt = mdates.DateFormatter('%m')
+    wd_fmt = mdates.DateFormatter('%d.%m')
+    days_fmt = mdates.DateFormatter('')
     fig, ax = plt.subplots(figsize=(15, 8))
 
-    # plt.title(f'Gantt plot for UW calendar', pad=20)
     # format the ticks
-    ax.xaxis.set_major_locator(years)
-    ax.xaxis.set_major_formatter(years_fmt)
-    ax.xaxis.set_minor_locator(months)
-    ax.xaxis.set_minor_formatter(months_fmt)
+    ax.xaxis.set_major_locator(weekdays)
+    ax.xaxis.set_major_formatter(wd_fmt)
+    ax.xaxis.set_minor_locator(days)
+    ax.xaxis.set_minor_formatter(days_fmt)
 
     # round to nearest years.
-    datemin = datetime.date(day=1, month=10, year=2019)
-    datemax = datetime.date(day=1, month=11, year=2020)
+    datemin = datetime.date(day=1, month=4, year=2020)
+    datemax = datetime.date(day=27, month=5, year=2020)
     ax.set_xlim(datemin, datemax)
 
     # format the coords message box
@@ -41,30 +45,58 @@ def main():
     ax.grid(b=True, which='major', linestyle='-')
     ax.grid(b=True, which='minor', linestyle='-')
     ax.set_axisbelow(True)
-    ax.get_yaxis().set_visible(False)
+    ax.xaxis.set_tick_params(labelsize='large', width=4)
+
+    # red - JN
+    # green - JS
+    # blue - KD
+    # orange - MK
+
+    power_rangers = {
+        'JN': 'red',
+        'MK': 'blue',
+        'JS': 'green',
+        'KD': 'black',
+        'ALL': 'purple'
+    }
+
+    import matplotlib.patches as mpatches
+
+    ax.legend(handles=[mpatches.Patch(color=power_rangers[user], label=user) for user in power_rangers])
 
     tasks = [
-        GTask('Winter semester', '01.10.2019', '22.02.2020', 'purple'),
-        GTask('Classes', '02.10.2019', '17.01.2020'),
-        GTask('1st round of registration', '01.12.2019', '30.12.2019', 'orange'),
-        GTask('Deadline for resignation', '17.01.2020', '18.01.2020', 'orange'),
-        GTask('Winter holidays', '23.12.2019', '06.01.2020', 'green'),
-        GTask('Winter examination session', '28.01.2020', '08.02.2020', 'red'),
-        GTask('Language exams', '28.01.2020', '29.01.2020', 'red'),
-        GTask('Inter-semester break', '10.02.2020', '16.02.2020', 'green'),
-        GTask('Resit winter examination session', '17.02.2020', '22.02.2020', 'red'),
+        GTask('Project', '01.04.2020', '20.05.2020', power_rangers['ALL']),
+        GTask('Project presentation', '20.05.2020', '27.05.2020', power_rangers['ALL']),
+        GTask('Preparing git repositories', '01.04.2020', '08.04.2020', power_rangers['ALL']),
+        GTask('Setting up IDE and environment', '01.04.2020', '08.04.2020', power_rangers['ALL']),
 
-        GTask('Summer semester', '24.02.2020', '30.09.2020', 'purple'),
-        GTask('Classes', '24.02.2020', '10.06.2020'),
-        GTask('Spring holidays', '09.04.2020', '14.04.2020', 'green'),
-        GTask('Juwenalia', '08.05.2020', '09.05.2020', 'green'),
-        GTask('Deadline for resignation', '01.06.2020', '02.06.2020', 'orange'),
-        GTask('1st round of registration', '01.06.2020', '30.06.2020', 'orange'),
-        GTask('Summer examination session', '15.06.2020', '27.06.2020', 'red'),
-        GTask('Language exams', '15.06.2020', '16.06.2020', 'red'),
-        GTask('Summer holidays', '29.06.2020', '30.08.2020', 'green'),
-        GTask('Resit summer examination session', '31.08.2020', '12.09.2020', 'red'),
-        GTask('Individuals decisions', '14.09.2020', '30.09.2020', 'orange'),
+        # JN
+        GTask('API between stages definition', '15.04.2020', '20.04.2020', power_rangers['JN']),
+        GTask('Preparing first version of README', '20.04.2020', '27.04.2020', power_rangers['JN']),
+        GTask('Code reviewing and merging pull requests', '20.04.2020', '14.05.2020', power_rangers['JN']),
+        GTask('Preparing final README', '27.04.2020', '20.05.2020', power_rangers['JN']),
+        GTask('Preparing integration tests', '27.04.2020', '20.05.2020', power_rangers['JN']),
+
+        # JS
+        GTask('Import bachelor project for downloading UniProt seqs', '15.04.2020', '20.04.2020', power_rangers['JS']),
+        GTask('Implementing efficient storing and getting UniProt seqs', '20.04.2020', '24.04.2020', power_rangers['JS']),
+        GTask('Preparing test input data and simple test cases', '24.04.2020', '27.04.2020', power_rangers['JS']),
+        GTask('Preparing complex tests for 1st step', '27.04.2020', '07.05.2020', power_rangers['JS']),
+        GTask('Integration with other steps', '27.04.2020', '14.05.2020', power_rangers['JS']),
+
+        # KD
+        GTask('Preparing input (with JS) and output (with MK) format definition', '20.04.2020', '24.04.2020', power_rangers['KD']),
+        GTask('Preparing test input data and simple test cases', '24.04.2020', '27.04.2020', power_rangers['KD']),
+        GTask('Preparing complex tests for 2nd step', '27.04.2020', '07.05.2020', power_rangers['KD']),
+        GTask('Implementing amino-acids analyzer', '27.04.2020', '07.05.2020', power_rangers['KD']),
+        GTask('Integration with other steps', '07.05.2020', '14.05.2020', power_rangers['KD']),
+
+        # MK
+        GTask('Preparing input (with KD) and output format definition', '20.04.2020', '24.04.2020', power_rangers['MK']),
+        GTask('Preparing test input data and simple test cases', '24.04.2020', '27.04.2020', power_rangers['MK']),
+        GTask('Preparing complex tests for 3rd step', '27.04.2020', '07.05.2020', power_rangers['MK']),
+        GTask('Implementing amino-acids analyzer\'s data visualization', '27.04.2020', '07.05.2020', power_rangers['MK']),
+        GTask('Integration with other steps', '07.05.2020', '14.05.2020', power_rangers['MK']),
     ]
 
     trans_color = {
@@ -75,13 +107,20 @@ def main():
         'red': 'xxx',
     }
 
+    labels = [task.name for task in tasks]
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels)
+
+    my_colors = [task.color for task in tasks]
+
+    for tick_label, tick_color in zip(plt.gca().get_yticklabels(), my_colors):
+        tick_label.set_color(tick_color)
+
     for i, task in enumerate(tasks):
         if not color:
             ax.broken_barh(task.barh, (i - 0.4, 0.8), color='white', edgecolor='black')
         else:
-            ax.broken_barh(task.barh, (i - 0.4, 0.8), facecolor=task.color)
-
-        ax.text(task.start + (task.stop - task.start) / 2, i, task.name, va='center', ha='center')
+            ax.broken_barh(task.barh, (i - 0.4, 0.8), facecolor=task.color, edgecolor='black')
 
     plt.show()
 
