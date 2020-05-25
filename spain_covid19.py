@@ -100,7 +100,7 @@ def prepare_dfs(modes: List[str]):
         for date in date_array:
             if date not in map_dfs[mode]:
                 if date < '2020-04-15':  # interpolate data before
-                    map_dfs[mode][date] = first_col
+                    map_dfs[mode][date] = 0
                 else:  # interpolate data after
                     map_dfs[mode][date] = last_col
             map_dfs[mode][f'{date}_per'] = (map_dfs[mode][date] / map_dfs[mode]['Population']) * 100
@@ -198,7 +198,7 @@ def communities_interactive(modes: List[str], i_date_str: str, save_file: bool =
         show(tabs)
 
 
-def communities_cases(modes: List[str], save_file: bool = False):
+def communities_cases(modes: List[str], save_file: bool = False, lognorm: bool = False):
     map_dfs = prepare_df_for_all(modes)
 
     n = 2
@@ -207,7 +207,8 @@ def communities_cases(modes: List[str], save_file: bool = False):
     for mode in modes:
         max_cnt = map_dfs[mode][date_array].values.max(1).max()
         min_cnt = map_dfs[mode][date_array].values.min(1).min()
-        normalize = colors.Normalize(min_cnt, max_cnt)
+        normalize = colors.Normalize(min_cnt, max_cnt) if not lognorm else colors.LogNorm(0.01, max_cnt)
+
         normalizes[mode] = normalize
 
     def init():
@@ -227,6 +228,7 @@ def communities_cases(modes: List[str], save_file: bool = False):
             fig.colorbar(scalar_mappaple, cax=cax)
         return axs
 
+    normalization = '(norm)' if not lognorm else '(lognorm)'
     def animate(i):
         # stop for 20 frames after all dates
         if i >= len(date_array):
@@ -258,7 +260,7 @@ def communities_cases(modes: List[str], save_file: bool = False):
     anim = FuncAnimation(fig, animate, init_func=init, frames=len(date_array) + 40, interval=100, blit=False)
     if save_file:
         global order
-        anim.save(f'spain_plots/{order}_spain_com_anim.gif', writer='imagemagick', dpi=120)
+        anim.save(f'spain_plots/{order}_spain_com_anim_{normalization}.gif', writer='imagemagick', dpi=120)
         order += 1
     else:
         plt.show()
@@ -301,7 +303,8 @@ def CPI(save_file: bool = False):
 
 
 if __name__ == '__main__':
-    communities_cases(['cases', 'death', 'hosp', 'recovered'], True)
+    communities_cases(['cases', 'death', 'hosp', 'recovered'], True, False)
+    communities_cases(['cases', 'death', 'hosp', 'recovered'], True, True)
     communities_interactive(modes, day_b4_max, True)
 
     unemployment(True)
