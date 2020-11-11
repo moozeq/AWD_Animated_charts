@@ -1,7 +1,15 @@
 # Description
 Creating animated gif charts for populations.
 
-## COVID-19 Spain
+## Generate all examples
+
+Every plot in proper folder is generated using commands from **cmds.sh** script.
+
+```bash
+./cmds.sh
+```
+
+## COVID-19 Spain charts
 
 ```bash
 ./spain_covid19.py
@@ -25,13 +33,7 @@ Creating population changes animated plot with Poland and 4 similar by populatio
 ./anim.py population_edt.csv Poland 1960
 ```
 
-## Generate all exaples
-
-Every plot in proper folder is generated using commands from **cmds.sh** script.
-
-```bash
-./cmds.sh
-```
+# Examples
 
 <html>
 <body>
